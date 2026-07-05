@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTags } from "../api";
+import { fetchTags, fetchTagExceptions, saveTagExceptions } from "../api";
 
 const BACKGROUND_OPTIONS = [
   { value: "obsidian", label: "Obsidian", swatch: "#0a0a0f" },
@@ -300,8 +300,11 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
   const s = getSettings();
   const [tagList, setTagList] = useState([]);
   const [tagInput, setTagInput] = useState("");
+  const [excList, setExcList] = useState([]);
+  const [excInput, setExcInput] = useState("");
   useEffect(() => {
     fetchTags().then(setTagList).catch(() => {});
+    fetchTagExceptions().then(setExcList).catch(() => {});
   }, []);
   async function addTag() {
     const t = tagInput.trim();
@@ -323,6 +326,19 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
       body: JSON.stringify(updated),
     });
     setTagList(updated);
+  }
+  async function addException() {
+    const t = excInput.trim().toLowerCase();
+    if (!t || excList.includes(t)) return;
+    const updated = [...excList, t];
+    await saveTagExceptions(updated);
+    setExcList(updated);
+    setExcInput("");
+  }
+  async function removeException(exc) {
+    const updated = excList.filter((e) => e !== exc);
+    await saveTagExceptions(updated);
+    setExcList(updated);
   }
   const [openSections, setOpenSections] = useState(() => {
     const opened = {};
@@ -397,47 +413,16 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
   async function resetAll() {
     if (
       !confirm(
-        "Reset all data? This will clear watch history, search history, bookmarks, likes, albums, and settings.",
+        "Reset all data? This will clear watch history, search history, bookmarks, likes, albums, tags, and settings.",
       )
     )
       return;
-    await Promise.all([
-      fetch("/api/data/watch-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/data/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/data/bookmarks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/data/likes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/data/playlists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/data/albums", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "[]",
-      }).catch(() => {}),
-      fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      }).catch(() => {}),
-    ]);
+    await fetch("/api/reset", { method: "POST" }).catch(() => {});
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => {});
     document.cookie =
       "settings=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     window.location.reload();
@@ -500,7 +485,7 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
                   </div>
                 ))}
                 {section.id === "tags" && (
-                  <div className="set-section-body">
+                  <>
                     <div className="set-row">
                       <div className="set-row-label">All tags</div>
                     </div>
@@ -517,7 +502,24 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
                       <input className="set-tag-input" placeholder="Add a tag…" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} />
                       <button className="set-opt" onClick={addTag}>Add</button>
                     </div>
-                  </div>
+                    <div className="set-row" style={{ marginTop: "8px" }}>
+                      <div className="set-row-label">Tag exceptions (never extract)</div>
+                    </div>
+                    <div className="set-row" style={{ gap: "4px", flexWrap: "wrap" }}>
+                      {excList.length === 0 && <span style={{ opacity: 0.5, fontSize: "0.85em" }}>No exceptions — add tags you never want extracted</span>}
+                      {excList.map((exc) => (
+                        <span key={exc} className="set-tag" style={{ borderColor: "var(--accent)" }}>
+                          <i className="bi bi-slash-circle" style={{ fontSize: "0.7rem" }}></i>
+                          {exc}
+                          <button className="set-tag-remove" onClick={() => removeException(exc)}>&times;</button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="set-row" style={{ gap: "4px" }}>
+                      <input className="set-tag-input" placeholder="Add exception…" value={excInput} onChange={(e) => setExcInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addException()} />
+                      <button className="set-opt" onClick={addException}>Add</button>
+                    </div>
+                  </>
                 )}
                 {section.id === "privacy" && (
                   <div className="set-row">

@@ -178,7 +178,7 @@ export default function VideoPlayer({
     if (wasLiked) likes.splice(idx, 1)
     else {
       likes.unshift({ id: currentVideoId, title: videoInfo.title, channel: videoInfo.channel, thumbnail: videoInfo.thumbnail })
-      extractTags(currentVideoId)
+      extractTags(currentVideoId, true)
     }
     await saveData('likes', likes)
     setIsLiked(!wasLiked)

@@ -82,16 +82,39 @@ export async function fetchRecommend() {
   }
 }
 
-export async function extractTags(videoId) {
+export async function extractTags(videoId, liked = false) {
   try {
     const res = await fetch(`${API_BASE}/api/extract-tags`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId }),
+      body: JSON.stringify({ videoId, liked }),
     });
     return await res.json();
   } catch {
     return { tags: [] };
+  }
+}
+
+export async function fetchTagExceptions() {
+  try {
+    const res = await fetch(`${API_BASE}/api/tag-exceptions`);
+    const data = await res.json();
+    return data.exceptions || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveTagExceptions(exceptions) {
+  try {
+    const res = await fetch(`${API_BASE}/api/tag-exceptions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exceptions),
+    });
+    return await res.json();
+  } catch {
+    return { exceptions: [] };
   }
 }
 

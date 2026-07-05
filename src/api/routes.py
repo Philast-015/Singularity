@@ -6,8 +6,8 @@ from flask import Blueprint, jsonify, request
 from .info import handle_info
 from .search import handle_search
 from .stream import handle_stream
-from src.tags import extract_tags_from_video, get_recommendations, load_tags, save_tags
-from src.ytdl import fetch_radio
+from src.tags import extract_tags_from_video, get_recommendations, load_tags, save_tags, load_exceptions, save_exceptions
+from src.ytdl import fetch_radio, _load_recent as _load_recent_searches
 
 api_bp = Blueprint("api", __name__)
 
@@ -64,6 +64,21 @@ def recommend():
     return jsonify({"results": results})
 
 
+@api_bp.route("/api/recent-searches")
+def recent_searches():
+    result = _load_recent_searches()
+    if result is None:
+        try:
+            path = os.path.join(DATA_DIR, "recent_searches.json")
+            with open(path) as f:
+                result = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            result = []
+    if not isinstance(result, list):
+        result = []
+    return jsonify({"results": result})
+
+
 @api_bp.route("/api/radio")
 def radio():
     q = request.args.get("q", "")
@@ -77,9 +92,10 @@ def radio():
 def extract_tags():
     data = request.get_json(force=True)
     video_id = data.get("videoId", "")
+    liked = data.get("liked", False)
     if not video_id:
         return jsonify({"error": "missing videoId"}), 400
-    tags = extract_tags_from_video(video_id)
+    tags = extract_tags_from_video(video_id, liked=liked)
     return jsonify({"tags": tags})
 
 
@@ -87,12 +103,25 @@ def extract_tags():
 def tags():
     if request.method == "POST":
         data = request.get_json(force=True)
-        new_tags = data.get("tags", [])
-        existing = load_tags()
-        all_tags = existing + new_tags
-        save_tags(all_tags)
-        return jsonify({"tags": all_tags})
+        if isinstance(data, list):
+            save_tags(data)
+        elif isinstance(data, dict):
+            new_tags = data.get("tags", [])
+            existing = load_tags()
+            all_tags = existing + new_tags
+            save_tags(all_tags)
+        return jsonify({"tags": load_tags()})
     return jsonify({"tags": load_tags()})
+
+
+@api_bp.route("/api/tag-exceptions", methods=["GET", "POST"])
+def tag_exceptions():
+    if request.method == "POST":
+        data = request.get_json(force=True)
+        exc = data if isinstance(data, list) else []
+        save_exceptions(set(exc))
+        return jsonify({"exceptions": sorted(set(exc))})
+    return jsonify({"exceptions": sorted(load_exceptions())})
 
 
 @api_bp.route("/api/data/<name>", methods=["GET", "POST"])
@@ -112,3 +141,23 @@ def user_data(name):
             [] if name in ("history", "watch-history", "bookmarks", "likes", "playlists") else {}
         )
         return jsonify(default)
+
+
+@api_bp.route("/api/reset", methods=["POST"])
+def reset_all():
+    for name in ("history", "watch-history", "bookmarks", "likes", "playlists", "albums"):
+        path = _data_path(name)
+        try:
+            with open(path, "w") as f:
+                json.dump([], f)
+        except Exception:
+            pass
+    save_tags([])
+    save_exceptions(set())
+    path = os.path.join(DATA_DIR, "recent_searches.json")
+    try:
+        with open(path, "w") as f:
+            json.dump([], f)
+    except Exception:
+        pass
+    return jsonify({"ok": True})

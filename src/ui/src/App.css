@@ -559,8 +559,7 @@ header a {
 #searchHistoryDropdown {
     position: absolute;
     top: 100%;
-    right: 0;
-    right: 0;
+    left: 90%;
     z-index: 999;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -568,6 +567,7 @@ header a {
     box-shadow: 0 8px 24px var(--shadow);
     max-height: 300px;
     overflow-y: auto;
+    display: inline-block;
 }
 .dropdown-item {
     display: flex;
@@ -2175,8 +2175,21 @@ body.music-maximized #root {
     gap: 10px;
     padding: 8px;
     border-radius: 8px;
-    cursor: pointer;
     transition: background 0.15s;
+}
+.mm-queue-item .mm-queue-info {
+    cursor: pointer;
+}
+.mm-queue-item.mm-queued {
+    opacity: 0.5;
+}
+.mm-queue-item.mm-queued .mm-queue-info {
+    cursor: default;
+}
+.mm-queue-item.mm-queued .mm-queue-info .mm-queue-channel::after {
+    content: " — in queue";
+    color: var(--accent);
+    font-size: 0.72rem;
 }
 
 .mm-queue-item:hover {
@@ -2223,6 +2236,59 @@ body.music-maximized #root {
     white-space: nowrap;
 }
 
+.mm-queue-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.mm-queue-item:hover .mm-queue-actions {
+    opacity: 1;
+}
+.mm-queue-action {
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+.mm-queue-action:hover {
+    color: var(--accent);
+    background: var(--surface2);
+}
+.mm-queue-action:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+.mm-queue-action:disabled:hover {
+    color: var(--text2);
+    background: none;
+}
+.mm-queue-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mm-queue-addall {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-weight: 400;
+    line-height: 1.6;
+}
+.mm-queue-addall:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
 .mm-queue-idx {
     font-size: 0.75rem;
     color: var(--text3);
@@ -2245,6 +2311,7 @@ body.has-glass #collapsed-sidebar,
 body.has-glass #sidebar,
 body.has-glass .set-section,
 body.has-glass .modal-panel,
+body.has-glass #searchForm,
 body.has-glass .player-container,
 body.has-glass #musicPlayer,
 body.has-glass #musicMaximized .mm-header,

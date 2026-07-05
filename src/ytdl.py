@@ -1,8 +1,53 @@
-import yt_dlp
+import json
+import os
 import time
+
+import yt_dlp
 
 _cache = {}
 _CACHE_TTL = 300  # 5 minutes
+_RECENT_FILE = os.path.expanduser("~/.singularity/recent_searches.json")
+_RECENT_MAX = 3
+_recent_mtime = 0
+
+
+def _load_recent():
+    global _recent_mtime
+    try:
+        mtime = os.path.getmtime(_RECENT_FILE)
+        if mtime == _recent_mtime:
+            return None  # not changed
+        _recent_mtime = mtime
+        with open(_RECENT_FILE) as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except (FileNotFoundError, json.JSONDecodeError):
+        _recent_mtime = 0
+        return []
+
+
+def _save_recent(queries):
+    global _recent_mtime
+    os.makedirs(os.path.dirname(_RECENT_FILE), exist_ok=True)
+    with open(_RECENT_FILE, "w") as f:
+        json.dump(queries, f, indent=2)
+    _recent_mtime = os.path.getmtime(_RECENT_FILE)
+
+
+def _touch_recent(query):
+    queries = _load_recent()
+    if queries is None:
+        try:
+            with open(_RECENT_FILE) as f:
+                queries = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            queries = []
+    if not isinstance(queries, list):
+        queries = []
+    if query in queries:
+        queries.remove(query)
+    queries.insert(0, query)
+    _save_recent(queries[:_RECENT_MAX])
 
 
 def _get_cached(key, ttl=_CACHE_TTL):
@@ -16,7 +61,7 @@ def _set_cache(key, data):
     _cache[key] = {"data": data, "time": time.time()}
 
 
-def search(query: str, limit: int = 20):
+def search(query: str, limit: int = 50):
     cache_key = f"search:{query}:{limit}"
     cached = _get_cached(cache_key)
     if cached:
@@ -32,22 +77,25 @@ def search(query: str, limit: int = 20):
         result = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)
 
     videos = []
-    for entry in (result.get("entries") or []):
+    for entry in result.get("entries") or []:
         if not entry.get("id"):
             continue
         video_id = entry["id"]
-        videos.append({
-            "id": video_id,
-            "title": entry.get("title"),
-            "url": f"https://www.youtube.com/watch?v={video_id}",
-            "thumbnail": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
-            "duration": format_duration(entry.get("duration")),
-            "duration_sec": entry.get("duration"),
-            "channel": entry.get("channel") or entry.get("uploader"),
-            "views": entry.get("view_count"),
-        })
+        videos.append(
+            {
+                "id": video_id,
+                "title": entry.get("title"),
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "thumbnail": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
+                "duration": format_duration(entry.get("duration")),
+                "duration_sec": entry.get("duration"),
+                "channel": entry.get("channel") or entry.get("uploader"),
+                "views": entry.get("view_count"),
+            }
+        )
 
     _set_cache(cache_key, videos)
+    _touch_recent(query)
     return videos
 
 
@@ -68,7 +116,7 @@ def get_info(url: str):
 
     video_formats = []
     audio_formats = []
-    for f in (data.get("formats") or []):
+    for f in data.get("formats") or []:
         if not f.get("url"):
             continue
         fmt = {
@@ -98,7 +146,8 @@ def get_info(url: str):
 
     info = {
         "title": data.get("fulltitle") or data.get("title"),
-        "thumbnail": data.get("thumbnail") or f"https://i.ytimg.com/vi/{data.get('id')}/maxresdefault.jpg",
+        "thumbnail": data.get("thumbnail")
+        or f"https://i.ytimg.com/vi/{data.get('id')}/maxresdefault.jpg",
         "duration": format_duration(data.get("duration")),
         "duration_sec": data.get("duration"),
         "channel": data.get("channel") or data.get("uploader"),
@@ -134,20 +183,22 @@ def fetch_radio(seed_query: str, limit: int = 30):
         with yt_dlp.YoutubeDL(opts) as ydl:
             data = ydl.extract_info(radio_url, download=False)
         entries = []
-        for entry in (data.get("entries") or []):
+        for entry in data.get("entries") or []:
             if not entry.get("id"):
                 continue
             eid = entry["id"]
-            entries.append({
-                "id": eid,
-                "title": entry.get("title"),
-                "url": f"https://www.youtube.com/watch?v={eid}",
-                "thumbnail": f"https://i.ytimg.com/vi/{eid}/mqdefault.jpg",
-                "duration": format_duration(entry.get("duration")),
-                "duration_sec": entry.get("duration"),
-                "channel": entry.get("channel") or entry.get("uploader"),
-                "views": entry.get("view_count"),
-            })
+            entries.append(
+                {
+                    "id": eid,
+                    "title": entry.get("title"),
+                    "url": f"https://www.youtube.com/watch?v={eid}",
+                    "thumbnail": f"https://i.ytimg.com/vi/{eid}/mqdefault.jpg",
+                    "duration": format_duration(entry.get("duration")),
+                    "duration_sec": entry.get("duration"),
+                    "channel": entry.get("channel") or entry.get("uploader"),
+                    "views": entry.get("view_count"),
+                }
+            )
             if len(entries) >= limit:
                 break
         _set_cache(cache_key, entries)

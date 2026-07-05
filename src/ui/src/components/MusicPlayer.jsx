@@ -274,20 +274,57 @@ export default function MusicPlayer({
 
             {radioResults.length > 0 && (
               <div className="mm-queue">
-                <h3 className="mm-queue-title">Related tracks</h3>
-                <div className="mm-queue-list">
-                  {radioResults.map(t => (
-                    <div key={t.id} className="mm-queue-item" onClick={() => {
-                      setMusicQueue([...musicQueue.slice(queueIndex + 1), t])
-                      setQueueIndex(queueIndex)
+                <h3 className="mm-queue-title">
+                  Related tracks
+                  <button className="mm-queue-addall" title="Add all to queue"
+                    onClick={() => {
+                      const existing = new Set(musicQueue.map(x => x.id))
+                      const newTracks = radioResults.filter(t => !existing.has(t.id))
+                      setMusicQueue([...musicQueue, ...newTracks])
                     }}>
-                      <img src={t.thumbnail || ''} alt="" className="mm-queue-thumb" />
-                      <div className="mm-queue-info">
-                        <span className="mm-queue-name">{t.title || ''}</span>
-                        <span className="mm-queue-channel">{t.channel || ''}</span>
+                    + all
+                  </button>
+                </h3>
+                <div className="mm-queue-list">
+                  {radioResults.map(t => {
+                    const alreadyQueued = musicQueue.some(x => x.id === t.id)
+                    return (
+                      <div key={t.id} className={`mm-queue-item ${alreadyQueued ? 'mm-queued' : ''}`}>
+                        <img src={t.thumbnail || ''} alt="" className="mm-queue-thumb" />
+                        <div className="mm-queue-info" onClick={() => {
+                          if (!alreadyQueued) setMusicQueue([...musicQueue, t])
+                        }}>
+                          <span className="mm-queue-name">{t.title || ''}</span>
+                          <span className="mm-queue-channel">{t.channel || ''}</span>
+                        </div>
+                        <div className="mm-queue-actions">
+                          <button className="mm-queue-action" title="Play next"
+                            onClick={() => {
+                              const idx = alreadyQueued ? musicQueue.findIndex(x => x.id === t.id) : -1
+                              if (idx >= 0) {
+                                setQueueIndex(idx)
+                                setCurrentTrack(musicQueue[idx])
+                              } else {
+                                const insertAt = queueIndex + 1
+                                const newQ = [...musicQueue]
+                                newQ.splice(insertAt, 0, t)
+                                setMusicQueue(newQ)
+                                if (insertAt <= queueIndex) setQueueIndex(queueIndex + 1)
+                              }
+                            }}>
+                            <i className="bi bi-skip-end-fill"></i>
+                          </button>
+                          <button className="mm-queue-action" title={alreadyQueued ? 'Already in queue' : 'Add to queue'}
+                            disabled={alreadyQueued}
+                            onClick={() => {
+                              if (!alreadyQueued) setMusicQueue([...musicQueue, t])
+                            }}>
+                            <i className="bi bi-plus-lg"></i>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
