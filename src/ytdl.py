@@ -7,9 +7,18 @@ _YTDL_ENABLED = True
 if _YTDL_ENABLED:
     import yt_dlp
 
+_COOKIES_FILE = os.environ.get("YT_COOKIES_FILE", "")
+
 _cache = {}
 _CACHE_TTL = 300  # 5 minutes
 _RECENT_FILE = os.path.expanduser("~/.singularity/recent_searches.json")
+
+
+def _cookie_opts():
+    if _COOKIES_FILE and os.path.isfile(_COOKIES_FILE):
+        return {"cookiefile": _COOKIES_FILE}
+    return {}
+
 _RECENT_MAX = 5
 _recent_mtime = 0
 
@@ -78,6 +87,7 @@ def search(query: str, limit: int = 50):
         "no_warnings": True,
         "extract_flat": "in_playlist",
         "skip_download": True,
+        **_cookie_opts(),
     }
     with yt_dlp.YoutubeDL(opts) as ydl:
         result = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)
@@ -119,6 +129,7 @@ def get_info(url: str):
         "no_warnings": True,
         "skip_download": True,
         "extract_flat": False,
+        **_cookie_opts(),
     }
     with yt_dlp.YoutubeDL(opts) as ydl:
         data = ydl.extract_info(url, download=False)
@@ -185,6 +196,7 @@ def fetch_radio(seed_query: str, limit: int = 30):
         "no_warnings": True,
         "extract_flat": True,
         "skip_download": True,
+        **_cookie_opts(),
     }
     try:
         result = search(seed_query, limit=1)
