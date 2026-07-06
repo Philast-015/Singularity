@@ -78,7 +78,12 @@ const SECTIONS = [
         label: "Glass effect",
         type: "choice",
         options: ["off", "subtle", "medium", "strong"],
-        icons: ["bi-x-circle", "bi-droplet-half", "bi-droplet", "bi-droplet-fill"],
+        icons: [
+          "bi-x-circle",
+          "bi-droplet-half",
+          "bi-droplet",
+          "bi-droplet-fill",
+        ],
       },
       {
         key: "glassColor",
@@ -303,8 +308,12 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
   const [excList, setExcList] = useState([]);
   const [excInput, setExcInput] = useState("");
   useEffect(() => {
-    fetchTags().then(setTagList).catch(() => {});
-    fetchTagExceptions().then(setExcList).catch(() => {});
+    fetchTags()
+      .then(setTagList)
+      .catch(() => {});
+    fetchTagExceptions()
+      .then(setExcList)
+      .catch(() => {});
   }, []);
   async function addTag() {
     const t = tagInput.trim();
@@ -489,35 +498,85 @@ export default function SettingsPanel({ getSettings, updateSetting }) {
                     <div className="set-row">
                       <div className="set-row-label">All tags</div>
                     </div>
-                    <div className="set-row" style={{ gap: "4px", flexWrap: "wrap" }}>
-                      {tagList.length === 0 && <span style={{ opacity: 0.5, fontSize: "0.85em" }}>No tags yet — tags are extracted when you like or save a video</span>}
+                    <div
+                      className="set-row"
+                      style={{ gap: "1px", flexWrap: "wrap" }}
+                    >
+                      {tagList.length === 0 && (
+                        <span style={{ opacity: 0.5, fontSize: "0.85em" }}>
+                          No tags yet — tags are extracted when you like or save
+                          a video
+                        </span>
+                      )}
                       {tagList.map((tag) => (
                         <span key={tag} className="set-tag">
                           {tag}
-                          <button className="set-tag-remove" onClick={() => removeTag(tag)}>&times;</button>
+                          <button
+                            className="set-tag-remove"
+                            onClick={() => removeTag(tag)}
+                          >
+                            &times;
+                          </button>
                         </span>
                       ))}
                     </div>
                     <div className="set-row" style={{ gap: "4px" }}>
-                      <input className="set-tag-input" placeholder="Add a tag…" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} />
-                      <button className="set-opt" onClick={addTag}>Add</button>
+                      <input
+                        className="set-tag-input"
+                        placeholder="Add a tag…"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addTag()}
+                      />
+                      <button className="set-opt" onClick={addTag}>
+                        Add
+                      </button>
                     </div>
                     <div className="set-row" style={{ marginTop: "8px" }}>
-                      <div className="set-row-label">Tag exceptions (never extract)</div>
+                      <div className="set-row-label">
+                        Tag exceptions (never extract)
+                      </div>
                     </div>
-                    <div className="set-row" style={{ gap: "4px", flexWrap: "wrap" }}>
-                      {excList.length === 0 && <span style={{ opacity: 0.5, fontSize: "0.85em" }}>No exceptions — add tags you never want extracted</span>}
+                    <div
+                      className="set-row"
+                      style={{ gap: "4px", flexWrap: "wrap" }}
+                    >
+                      {excList.length === 0 && (
+                        <span style={{ opacity: 0.5, fontSize: "0.85em" }}>
+                          No exceptions — add tags you never want extracted
+                        </span>
+                      )}
                       {excList.map((exc) => (
-                        <span key={exc} className="set-tag" style={{ borderColor: "var(--accent)" }}>
-                          <i className="bi bi-slash-circle" style={{ fontSize: "0.7rem" }}></i>
+                        <span
+                          key={exc}
+                          className="set-tag"
+                          style={{ borderColor: "var(--accent)" }}
+                        >
+                          <i
+                            className="bi bi-slash-circle"
+                            style={{ fontSize: "0.7rem" }}
+                          ></i>
                           {exc}
-                          <button className="set-tag-remove" onClick={() => removeException(exc)}>&times;</button>
+                          <button
+                            className="set-tag-remove"
+                            onClick={() => removeException(exc)}
+                          >
+                            &times;
+                          </button>
                         </span>
                       ))}
                     </div>
                     <div className="set-row" style={{ gap: "4px" }}>
-                      <input className="set-tag-input" placeholder="Add exception…" value={excInput} onChange={(e) => setExcInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addException()} />
-                      <button className="set-opt" onClick={addException}>Add</button>
+                      <input
+                        className="set-tag-input"
+                        placeholder="Add exception…"
+                        value={excInput}
+                        onChange={(e) => setExcInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addException()}
+                      />
+                      <button className="set-opt" onClick={addException}>
+                        Add
+                      </button>
                     </div>
                   </>
                 )}

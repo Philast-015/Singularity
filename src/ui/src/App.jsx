@@ -321,12 +321,24 @@ export default function App() {
         "--surface2",
         `rgba(${gc.r},${gc.g},${gc.b},${isLight ? "0.6" : g.alpha2})`,
       );
+      const bgHex =
+        (s.bgColor && BACKGROUND_MAP[s.bgColor]) ||
+        (isLight ? BACKGROUND_MAP.light : BACKGROUND_MAP.dark);
+      const br = parseInt(bgHex.slice(1, 3), 16);
+      const bg = parseInt(bgHex.slice(3, 5), 16);
+      const bb = parseInt(bgHex.slice(5, 7), 16);
+      const bgAlpha = isLight ? "0.7" : "0.5";
+      document.documentElement.style.setProperty(
+        "--bg-glass",
+        `rgba(${br},${bg},${bb},${bgAlpha})`,
+      );
       document.body.classList.add("has-glass");
     } else {
       document.body.classList.remove("has-glass");
       document.documentElement.style.removeProperty("--glass-blur");
       document.documentElement.style.removeProperty("--surface");
       document.documentElement.style.removeProperty("--surface2");
+      document.documentElement.style.removeProperty("--bg-glass");
     }
   }
 

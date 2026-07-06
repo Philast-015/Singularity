@@ -1000,7 +1000,7 @@ body.has-dock #root {
 .dock-art {
     width: var(--album-art-size);
     height: var(--album-art-size);
-    border-radius: 6px;
+    border-radius: 50px;
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -2318,4 +2318,14 @@ body.has-glass #musicMaximized .mm-header,
 body.has-glass .dock {
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+body.has-glass #musicMaximized {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+body.has-glass #musicMaximized .mm-header {
+    background: var(--bg-glass);
 }

@@ -1,5 +1,5 @@
 import requests
-from flask import Response
+from flask import Response, request
 
 
 HEADERS = {
@@ -10,11 +10,33 @@ HEADERS = {
 
 
 def handle_stream(url: str):
+    req_headers = dict(HEADERS)
+    resp_headers = {}
+    status = 200
+
+    range_header = request.headers.get("Range")
+    if range_header:
+        req_headers["Range"] = range_header
+
+    resp = requests.get(url, headers=req_headers, stream=True)
+
+    if range_header and resp.status_code == 206:
+        status = 206
+        for key in ("Content-Range", "Content-Length", "Accept-Ranges"):
+            val = resp.headers.get(key)
+            if val:
+                resp_headers[key] = val
+
     def proxy():
-        with requests.get(url, headers=HEADERS, stream=True) as resp:
+        with resp:
             resp.raise_for_status()
             for chunk in resp.iter_content(chunk_size=65536):
                 if chunk:
                     yield chunk
 
-    return Response(proxy(), content_type="video/mp4")
+    return Response(
+        proxy(),
+        status=status,
+        content_type=resp.headers.get("Content-Type", "video/mp4"),
+        headers=resp_headers,
+    )

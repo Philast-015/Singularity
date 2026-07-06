@@ -2,7 +2,10 @@ import json
 import os
 import time
 
-import yt_dlp
+_YTDL_ENABLED = True
+
+if _YTDL_ENABLED:
+    import yt_dlp
 
 _cache = {}
 _CACHE_TTL = 300  # 5 minutes
@@ -62,6 +65,9 @@ def _set_cache(key, data):
 
 
 def search(query: str, limit: int = 50):
+    if not _YTDL_ENABLED:
+        return []
+
     cache_key = f"search:{query}:{limit}"
     cached = _get_cached(cache_key)
     if cached:
@@ -100,6 +106,9 @@ def search(query: str, limit: int = 50):
 
 
 def get_info(url: str):
+    if not _YTDL_ENABLED:
+        return {"video_formats": [], "audio_formats": [], "best_audio_url": None}
+
     cache_key = f"info:{url}"
     cached = _get_cached(cache_key)
     if cached:
@@ -163,6 +172,9 @@ def get_info(url: str):
 
 
 def fetch_radio(seed_query: str, limit: int = 30):
+    if not _YTDL_ENABLED:
+        return []
+
     cache_key = f"radio:{seed_query}:{limit}"
     cached = _get_cached(cache_key)
     if cached:
