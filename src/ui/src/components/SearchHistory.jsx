@@ -1,7 +1,7 @@
 export default function SearchHistory({ visible, history, onSelect }) {
-  if (!visible) return null
+  if (!visible) return null;
   return (
-    <div id="searchHistoryDropdown" style={{ position: 'relative', maxWidth: 500, margin: '0 auto' }}>
+    <div id="searchHistoryDropdown">
       <div id="searchHistoryList">
         {history.length === 0 ? (
           <div className="dropdown-empty">No recent searches</div>
@@ -15,5 +15,5 @@ export default function SearchHistory({ visible, history, onSelect }) {
         )}
       </div>
     </div>
-  )
+  );
 }

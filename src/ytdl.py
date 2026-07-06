@@ -7,7 +7,7 @@ import yt_dlp
 _cache = {}
 _CACHE_TTL = 300  # 5 minutes
 _RECENT_FILE = os.path.expanduser("~/.singularity/recent_searches.json")
-_RECENT_MAX = 3
+_RECENT_MAX = 5
 _recent_mtime = 0
 
 

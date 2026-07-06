@@ -558,17 +558,17 @@ header a {
 
 #searchHistoryDropdown {
     position: absolute;
-    top: 100%;
-    left: 90%;
+    top: 60%;
+    left: 80%;
     z-index: 999;
     background: var(--surface);
-    border: 1px solid var(--border);
     border-radius: 0 0 8px 8px;
     box-shadow: 0 8px 24px var(--shadow);
     max-height: 300px;
     overflow-y: auto;
-    display: inline-block;
+    display: inline;
 }
+
 .dropdown-item {
     display: flex;
     align-items: center;
