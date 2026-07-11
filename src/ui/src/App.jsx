@@ -13,6 +13,7 @@ import {
 import Sidebar from "./components/Sidebar";
 import SearchHistory from "./components/SearchHistory";
 import VideoPlayer from "./components/VideoPlayer";
+import logo from "./logo.png";
 import MusicPlayer from "./components/MusicPlayer";
 import AlbumDetail from "./components/AlbumDetail";
 import AlbumModals from "./components/AlbumModals";
@@ -215,6 +216,11 @@ export default function App() {
       GRID_MIN[grid] || "280px",
     );
     document.body.classList.toggle("anim-off", anim !== "on");
+
+    const viewMode = s.viewMode || "grid";
+    document.body.classList.toggle("view-grid", viewMode === "grid");
+    document.body.classList.toggle("view-list", viewMode === "list");
+    document.body.classList.toggle("view-full", viewMode === "full");
 
     document.documentElement.style.setProperty("--sidebar-width", sWidth);
     const iconFontSizes = { small: "1rem", medium: "1.25rem", large: "1.5rem" };
@@ -512,7 +518,7 @@ export default function App() {
                     goHome();
                   }}
                 >
-                  <i className="bi bi-youtube"></i>
+                  <img src={logo} alt="" style={{width:'22px',height:'22px',borderRadius:'4px',objectFit:'cover'}} />
                   <span id="brandName">
                     {musicMode ? "Music" : "Singularity"}
                   </span>

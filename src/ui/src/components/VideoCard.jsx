@@ -19,6 +19,9 @@ export default function VideoCard({ video, onClick }) {
           <span>{video.views != null ? formatViews(video.views) + ' views' : ''}</span>
           <span>{video.duration || ''}</span>
         </div>
+        {video.description && (
+          <div className="card-desc">{video.description}</div>
+        )}
       </div>
     </div>
   )

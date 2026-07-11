@@ -20,12 +20,11 @@ def handle_stream(url: str):
 
     resp = requests.get(url, headers=req_headers, stream=True)
 
-    if range_header and resp.status_code == 206:
-        status = 206
-        for key in ("Content-Range", "Content-Length", "Accept-Ranges"):
-            val = resp.headers.get(key)
-            if val:
-                resp_headers[key] = val
+    status = resp.status_code
+    for key in ("Content-Range", "Content-Length", "Accept-Ranges"):
+        val = resp.headers.get(key)
+        if val:
+            resp_headers[key] = val
 
     def proxy():
         with resp:

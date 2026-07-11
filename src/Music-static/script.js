@@ -1,6 +1,6 @@
 const data = document.getElementById("data");
 const videoId = data?.dataset.videoId || "";
-const initialTitle = data?.dataset.title || "Music";
+const initialTitle = data?.dataset.title || "Singularity Music";
 const initialChannel = data?.dataset.channel || "";
 const initialThumbnail = data?.dataset.thumbnail || "";
 const apiBase = data?.dataset.apiBase || "http://127.0.0.1:5000";
@@ -58,7 +58,6 @@ function updatePlayBtn() {
   playBtn.innerHTML = player.paused
     ? '<i class="bi bi-play-fill"></i>'
     : '<i class="bi bi-pause-fill"></i>';
-  if (art) art.classList.toggle("spinning", !player.paused);
 }
 
 function updateRepeatBtn() {

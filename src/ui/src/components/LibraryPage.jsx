@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchData, saveData } from "../api";
+import logo from "../logo.png";
 
 function PlaylistRow({
   title,
@@ -141,7 +142,7 @@ export default function LibraryPage({
               className="lib-mode-tab"
               onClick={() => onToggleMusic(false)}
             >
-              <i className="bi bi-youtube"></i> YouTube
+              <img src={logo} alt="" style={{width:'16px',height:'16px',borderRadius:'3px',objectFit:'cover',verticalAlign:'-2px'}} /> YouTube
             </button>
           </div>
 
@@ -195,7 +196,7 @@ export default function LibraryPage({
             <i className="bi bi-music-note-beamed"></i> Music
           </button>
           <button className="lib-mode-tab active">
-            <i className="bi bi-youtube"></i>YouTube
+            <img src={logo} alt="" style={{width:'16px',height:'16px',borderRadius:'3px',objectFit:'cover',verticalAlign:'-2px'}} />YouTube
           </button>
         </div>
 

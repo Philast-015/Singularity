@@ -130,6 +130,12 @@ const SECTIONS = [
     icon: "bi-grid-3x3-gap",
     settings: [
       {
+        key: "viewMode",
+        label: "View mode",
+        type: "choice",
+        options: ["grid", "list", "full"],
+      },
+      {
         key: "gridCols",
         label: "Search grid columns",
         type: "choice",

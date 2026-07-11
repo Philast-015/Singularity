@@ -2,6 +2,7 @@ import argparse
 import html
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -25,6 +26,8 @@ MUSIC_PORT = 5002
 UI_DIR = os.path.join(os.path.dirname(__file__), "src", "ui")
 MUSIC_STATIC_DIR = os.path.join(os.path.dirname(__file__), "src", "Music-static")
 VIDEO_STATIC_DIR = os.path.join(os.path.dirname(__file__), "src", "Video-static")
+MUSIC_WORK_DIR = os.path.expanduser("~/.singularity/music-player")
+VIDEO_WORK_DIR = os.path.expanduser("~/.singularity/video-player")
 SERVER_PID_FILE = os.path.expanduser("~/.singularity/server.pid")
 PLAY_PID_FILE = os.path.expanduser("~/.singularity/play.pid")
 MUSIC_PID_FILE = os.path.expanduser("~/.singularity/music.pid")
@@ -155,25 +158,39 @@ def start_server(mode="web"):
 
     label = "API server" if mode == "api" else "Web interface"
     console.print(f"[green]{label} started on http://127.0.0.1:{PORT}[/]")
-    time.sleep(0.7)
-    console.print(
-        "[dim]Use [bold]--logs[/] to see output or [bold]--quit[/] to stop.[/]"
-    )
+    time.sleep(0.5)
+    console.print("[dim]Use [bold]logs[/] to see output or [bold]quit[/] to stop.[/]")
 
 
-def stop_server():
-    pid = _read_pid()
-    if pid:
-        try:
-            os.killpg(os.getpgid(pid), signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        if os.path.exists(SERVER_PID_FILE):
-            os.unlink(SERVER_PID_FILE)
+def stop_server(target="all"):
+    if target in ("all", "api"):
+        pid = _read_pid()
+        if pid:
+            try:
+                os.killpg(os.getpgid(pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            if os.path.exists(SERVER_PID_FILE):
+                os.unlink(SERVER_PID_FILE)
+        if target == "api":
+            console.print("[green]API server stopped.[/]")
+            return
 
-    _stop_static_player(PLAY_PID_FILE)
-    _stop_static_player(MUSIC_PID_FILE)
-    console.print("[green]All servers stopped.[/]")
+    if target in ("all", "music"):
+        _stop_static_player(MUSIC_PID_FILE, work_dir=MUSIC_WORK_DIR)
+        if target == "music":
+            console.print("[green]Music player stopped.[/]")
+            return
+
+    if target in ("all", "video"):
+        _stop_static_player(PLAY_PID_FILE, work_dir=VIDEO_WORK_DIR)
+        if target == "video":
+            console.print("[green]Video player stopped.[/]")
+            return
+
+    if target == "all":
+        _stop_static_player(PLAY_PID_FILE, work_dir=VIDEO_WORK_DIR)
+        console.print("[green]All servers stopped.[/]")
 
 
 def _serve():
@@ -242,8 +259,8 @@ def interactive_mode():
         lower = cmd.lower()
 
         if lower in ("exit", "quit", "q"):
-            _stop_static_player(PLAY_PID_FILE)
-            _stop_static_player(MUSIC_PID_FILE)
+            _stop_static_player(PLAY_PID_FILE, work_dir=VIDEO_WORK_DIR)
+            _stop_static_player(MUSIC_PID_FILE, work_dir=MUSIC_WORK_DIR)
             break
         elif lower in ("help", "h"):
             _show_help()
@@ -279,10 +296,11 @@ def interactive_mode():
             start_server("api")
         elif lower == "logs":
             show_logs()
-        elif lower == "stop":
-            stop_server()
-            _stop_static_player(PLAY_PID_FILE)
-            _stop_static_player(MUSIC_PID_FILE)
+        elif lower.startswith("stop"):
+            target = cmd[4:].strip().lower() or "all"
+            stop_server(target)
+        elif lower == "clear":
+            console.clear()
         else:
             console.print(f"[red]Unknown command:[/] {cmd}")
             console.print("[dim]Type [bold]help[/] to see available commands.[/]")
@@ -294,19 +312,23 @@ def _show_help():
     help_table.add_column(style="dim")
     help_table.add_row("help", "Show this help message")
     help_table.add_row("search <query>", "Search for music/videos")
-    help_table.add_row("download <n>", "Download item #n from search results")
-    help_table.add_row("play <n>", "Open video player for item #n")
-    help_table.add_row("music <n>", "Open music player for item #n")
+    help_table.add_row("download* <n>", "Download item #n from search results")
+    help_table.add_row("play* <n>", "Open video player for item #n")
+    help_table.add_row("music* <n>", "Open music player for item #n")
     help_table.add_row("web", "Start the web interface (build + API)")
     help_table.add_row("api", "Start the API server only")
     help_table.add_row("logs", "View/follow server logs")
-    help_table.add_row("stop", "Stop all servers")
+    help_table.add_row("stop [target]", "Stop servers (all, music, video, api)")
+    help_table.add_row("clear", "Clear the terminal screen")
     help_table.add_row("version", "Show version details")
     help_table.add_row("exit / quit", "Quit this menu")
+    help_table.add_row("-" * 20)
     help_table.add_row("Frontend Port", f"{PORT}")
     help_table.add_row("API Port", f"{PORT}")
     help_table.add_row("Video Port", f"{PLAY_PORT}")
     help_table.add_row("Music Port", f"{MUSIC_PORT}")
+    help_table.add_row("-" * 20)
+    help_table.add_row("*", "available after using search command")
     console.print(help_table)
 
 
@@ -516,10 +538,11 @@ def _do_music(index_str):
         return
 
     title = item.get("title", "Audio")
-    title = title.split()
-    title = title[:40]
+    title = " ".join(title.split()[:40])
     channel = item.get("channel", "")
     thumbnail = item.get("thumbnail", "")
+    if isinstance(thumbnail, list):
+        thumbnail = thumbnail[0].get("url", "") if thumbnail else ""
 
     _start_static_player(
         port=MUSIC_PORT,
@@ -532,7 +555,7 @@ def _do_music(index_str):
     )
 
 
-def _stop_static_player(pid_file):
+def _stop_static_player(pid_file, work_dir=None):
     pid = _read_pid(pid_file)
     if pid:
         try:
@@ -541,6 +564,11 @@ def _stop_static_player(pid_file):
             pass
         if os.path.exists(pid_file):
             os.unlink(pid_file)
+    if work_dir and os.path.isdir(work_dir):
+        for f in ("index.html", "style.css", "script.js"):
+            p = os.path.join(work_dir, f)
+            if os.path.exists(p):
+                os.unlink(p)
 
 
 def _start_static_player(
@@ -553,12 +581,14 @@ def _start_static_player(
     channel="",
     thumbnail="",
 ):
-    _stop_static_player(pid_file)
-    os.makedirs(os.path.dirname(pid_file), exist_ok=True)
-
     esc = html.escape
     api_base = f"http://127.0.0.1:{PORT}"
     is_video = port == PLAY_PORT
+
+    _stop_static_player(
+        pid_file, work_dir=VIDEO_WORK_DIR if is_video else MUSIC_WORK_DIR
+    )
+    os.makedirs(os.path.dirname(pid_file), exist_ok=True)
 
     if is_video:
         body = f"""<div id="data"
@@ -573,7 +603,7 @@ data-api-base="{esc(api_base)}">
 <p id="channel"></p>
 </div>
 <div id="player-wrap">
-<video id="player" autoplay playsinline></video>
+<video id="player" playsinline></video>
 <div id="controls">
 <button id="play-btn"><i class="bi bi-play-fill"></i></button>
 <span id="current-time">0:00</span>
@@ -592,27 +622,29 @@ data-thumbnail="{esc(thumbnail)}"
 data-api-base="{esc(api_base)}">
 </div>
 <div id="app">
-<div id="player-section">
-<div class="art-wrap">
+<div id="left-col">
+<div id="thumb-wrap">
 <img id="art" src="{esc(thumbnail)}" alt="album art">
 </div>
-<h1 id="title"></h1>
-<p id="channel"></p>
-<div id="player-wrap">
-<audio id="player" autoplay muted playsinline></audio>
-<div id="controls">
-<button id="play-btn"><i class="bi bi-play-fill"></i></button>
-<span id="current-time">0:00</span>
-<input type="range" id="seek" value="0" min="0" max="100" step="0.1">
-<span id="duration">0:00</span>
+<div id="right-btns">
 <button id="mute-btn"><i class="bi bi-volume-up-fill"></i></button>
 <button id="repeat-btn"><i class="bi bi-repeat-1"></i></button>
 </div>
+<audio id="player" playsinline></audio>
+<button id="play-btn"><i class="bi bi-play-fill"></i></button>
+<h1 id="title"></h1>
+<p id="channel"></p>
+<div id="progress-bar">
+<span id="current-time">0:00</span>
+<input type="range" id="seek" value="0" min="0" max="100" step="0.1">
+<span id="duration">0:00</span>
 </div>
 </div>
+<div id="right-col">
 <div id="suggestions-section">
 <h2>Up next</h2>
 <ul id="suggestions-list"></ul>
+</div>
 </div>
 </div>"""
 
@@ -631,14 +663,24 @@ data-api-base="{esc(api_base)}">
 </body>
 </html>"""
 
-    os.makedirs(static_dir, exist_ok=True)
-    idx_path = os.path.join(static_dir, "index.html")
-    with open(idx_path, "w") as f:
+    work_dir = VIDEO_WORK_DIR if is_video else MUSIC_WORK_DIR
+    os.makedirs(work_dir, exist_ok=True)
+    for f in ("index.html", "style.css", "script.js"):
+        p = os.path.join(work_dir, f)
+        if os.path.exists(p):
+            os.unlink(p)
+
+    for asset in ("style.css", "script.js"):
+        src = os.path.join(static_dir, asset)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(work_dir, asset))
+
+    with open(os.path.join(work_dir, "index.html"), "w") as f:
         f.write(page)
 
     with open(LOG_FILE, "a") as log:
         proc = subprocess.Popen(
-            [sys.executable, "-m", "http.server", str(port), "--directory", static_dir],
+            [sys.executable, "-m", "http.server", str(port), "--directory", work_dir],
             stdout=log,
             stderr=log,
             start_new_session=True,
@@ -734,7 +776,11 @@ def main():
     parser.add_argument("--api", action="store_true", help="Start the API server only")
     parser.add_argument("--logs", action="store_true", help="View/follow server logs")
     parser.add_argument(
-        "--quit", action="store_true", help="Stop the background server"
+        "--quit",
+        nargs="?",
+        const="all",
+        metavar="TARGET",
+        help="Stop servers (all, music, video, api)",
     )
     parser.add_argument("--_serve", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--_api_serve", action="store_true", help=argparse.SUPPRESS)
@@ -770,8 +816,8 @@ def main():
         show_version()
         return
 
-    if args.quit:
-        stop_server()
+    if args.quit is not None:
+        stop_server(args.quit)
         return
 
     if args.logs:
