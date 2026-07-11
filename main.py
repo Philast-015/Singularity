@@ -9,6 +9,7 @@ import sys
 import time
 import tomllib
 from pathlib import Path
+from urllib.parse import quote as url_quote
 
 import requests
 from rich import box
@@ -514,14 +515,28 @@ def _do_play(index_str):
 
     title = info.get("title", item.get("title", "Video"))
     channel = info.get("channel", item.get("channel", ""))
+    description = info.get("description", "")
+    views = info.get("views", 0)
+    thumbnail = info.get("thumbnail", "")
+    video_id = item.get("id", "")
+
+    proxy_url = _api_url(f"/api/stream?url={url_quote(stream_url, safe='')}")
+
+    raw_audio_url = info.get("best_audio_url", "")
+    proxy_audio_url = _api_url(f"/api/stream?url={url_quote(raw_audio_url, safe='')}") if raw_audio_url else ""
 
     _start_static_player(
         port=PLAY_PORT,
         pid_file=PLAY_PID_FILE,
         static_dir=VIDEO_STATIC_DIR,
-        stream_url=stream_url,
+        stream_url=proxy_url,
         title=title,
         channel=channel,
+        description=description,
+        views=views,
+        thumbnail=thumbnail,
+        video_id=video_id,
+        best_audio_url=proxy_audio_url,
     )
 
 
@@ -580,6 +595,9 @@ def _start_static_player(
     title="",
     channel="",
     thumbnail="",
+    description="",
+    views=0,
+    best_audio_url="",
 ):
     esc = html.escape
     api_base = f"http://127.0.0.1:{PORT}"
@@ -590,26 +608,72 @@ def _start_static_player(
     )
     os.makedirs(os.path.dirname(pid_file), exist_ok=True)
 
+    desc_text = description if description else ""
+    views_str = str(views) if views else ""
+
     if is_video:
         body = f"""<div id="data"
 data-stream-url="{esc(stream_url)}"
 data-title="{esc(title)}"
 data-channel="{esc(channel)}"
-data-api-base="{esc(api_base)}">
+data-api-base="{esc(api_base)}"
+data-video-id="{esc(video_id)}"
+data-description="{esc(desc_text)}"
+data-views="{esc(views_str)}"
+data-thumbnail="{esc(thumbnail)}"
+data-best-audio-url="{esc(best_audio_url)}">
 </div>
 <div id="app">
-<div id="info-bar">
+<div id="player-col">
+<div id="player-wrap">
+<audio id="audio-player" preload="auto"></audio>
+<video id="player" playsinline></video>
+<div id="player-overlay">
+<div id="loading-spinner"><div class="spinner"></div></div>
+</div>
+<div id="controls">
+<div id="progress-wrap">
+<div id="progress-buffer"></div>
+<div id="progress-bar"></div>
+<div id="progress-thumb"></div>
+</div>
+<div id="controls-row">
+<div id="ctrl-left">
+<button id="play-btn" title="Play/Pause (Space)"><i class="bi bi-play-fill"></i></button>
+<div id="volume-group">
+<button id="mute-btn" title="Mute (M)"><i class="bi bi-volume-up-fill"></i></button>
+<input type="range" id="volume" min="0" max="1" step="0.05" value="1">
+</div>
+<span id="time-display"><span id="current-time">0:00</span> / <span id="duration">0:00</span></span>
+</div>
+<div id="ctrl-right">
+<button id="info-btn" title="Video info"><i class="bi bi-chevron-down"></i></button>
+<select id="quality-select" title="Quality"><option value="">Auto</option></select>
+<button id="pip-btn" title="Miniplayer (I)"><i class="bi bi-pip"></i></button>
+<button id="fullscreen-btn" title="Fullscreen (F)"><i class="bi bi-fullscreen"></i></button>
+</div>
+</div>
+</div>
+</div>
+<div id="info-drawer">
+<div id="drawer-handle"><div id="drawer-bar"></div></div>
+<div id="drawer-inner">
 <h1 id="title"></h1>
 <p id="channel"></p>
+<div id="meta-row">
+<span id="views-display"></span>
+<div id="action-btns">
+<button id="open-yt-btn" title="Open in YouTube"><i class="bi bi-box-arrow-up-right"></i></button>
 </div>
-<div id="player-wrap">
-<video id="player" playsinline></video>
-<div id="controls">
-<button id="play-btn"><i class="bi bi-play-fill"></i></button>
-<span id="current-time">0:00</span>
-<input type="range" id="seek" value="0" min="0" max="100" step="0.1">
-<span id="duration">0:00</span>
-<button id="fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+</div>
+<div id="desc-section">
+<div id="desc-header">
+<span>Description</span>
+<button id="desc-toggle"><i class="bi bi-chevron-down"></i></button>
+</div>
+<div id="desc-content"></div>
+</div>
+</div>
 </div>
 </div>
 </div>"""
