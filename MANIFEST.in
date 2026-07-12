@@ -1,0 +1,8 @@
+include README.md pyproject.toml
+recursive-include src *.py
+recursive-include src/Music-static *
+recursive-include src/Video-static *
+recursive-include src/ui/dist *
+prune src/ui/node_modules
+prune src/ui/src
+prune src/singularity.egg-info

@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 import time
-import tomllib
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from urllib.parse import quote as url_quote
 
@@ -21,12 +21,15 @@ from rich.text import Text
 
 from src.api import create_app
 
+_ROOT = os.path.dirname(os.path.dirname(__file__))
+_SRC = os.path.dirname(__file__)
+
 PORT = 5000
 PLAY_PORT = 5001
 MUSIC_PORT = 5002
-UI_DIR = os.path.join(os.path.dirname(__file__), "src", "ui")
-MUSIC_STATIC_DIR = os.path.join(os.path.dirname(__file__), "src", "Music-static")
-VIDEO_STATIC_DIR = os.path.join(os.path.dirname(__file__), "src", "Video-static")
+UI_DIR = os.path.join(_SRC, "ui")
+MUSIC_STATIC_DIR = os.path.join(_SRC, "Music-static")
+VIDEO_STATIC_DIR = os.path.join(_SRC, "Video-static")
 MUSIC_WORK_DIR = os.path.expanduser("~/.singularity/music-player")
 VIDEO_WORK_DIR = os.path.expanduser("~/.singularity/video-player")
 SERVER_PID_FILE = os.path.expanduser("~/.singularity/server.pid")
@@ -41,9 +44,7 @@ console = Console()
 
 
 def _get_version():
-    pyproject = Path(__file__).parent / "pyproject.toml"
-    with open(pyproject, "rb") as f:
-        return tomllib.load(f)["project"]["version"]
+    return _pkg_version("singularity-twinx")
 
 
 def _run(cmd, cwd=None):
@@ -68,7 +69,7 @@ def show_banner():
 
 def show_version():
     ver = _get_version()
-    commit = _run(["git", "log", "--oneline", "-1"], cwd=os.path.dirname(__file__))
+    commit = _run(["git", "log", "--oneline", "-1"], cwd=_ROOT)
     node_v = _run(["node", "--version"])
     npm_v = _run(["npm", "--version"])
     py_v = sys.version.split()[0]
@@ -94,6 +95,12 @@ def show_version():
 
 def build_frontend():
     ui = UI_DIR
+    dist = os.path.join(ui, "dist")
+    if os.path.isdir(os.path.join(dist, "assets")):
+        return
+    if not os.path.isfile(os.path.join(ui, "package.json")):
+        console.print("[red]Frontend not built and source not found. Cannot build.[/]")
+        return
     if not os.path.isdir(os.path.join(ui, "node_modules")):
         console.print("[yellow]Installing frontend dependencies...[/]")
         subprocess.run(["npm", "install"], cwd=ui, check=True)
@@ -459,7 +466,7 @@ def _do_download_by_index(index_str):
     safe_name = "".join(
         c if c.isalnum() or c in " -_" else "_" for c in title_slug
     ).strip()
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    data_dir = os.path.join(os.path.expanduser("~"), ".singularity", "data")
     os.makedirs(data_dir, exist_ok=True)
     dest = os.path.join(data_dir, f"{safe_name}.{ext}")
 

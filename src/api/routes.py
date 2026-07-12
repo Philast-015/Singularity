@@ -7,7 +7,7 @@ from .info import handle_info
 from .search import handle_search
 from .stream import handle_stream
 from src.tags import extract_tags_from_video, get_recommendations, load_tags, save_tags, load_exceptions, save_exceptions
-from src.ytdl import fetch_radio, _load_recent as _load_recent_searches
+from src.ytdl import fetch_radio, load_recent as _load_recent_searches
 
 api_bp = Blueprint("api", __name__)
 

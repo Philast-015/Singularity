@@ -107,3 +107,12 @@ singularity [-h] [commands]
 │   └── ytdl.py
 └── uv.lock
 ```
+
+## Dependencies used
+
+- python
+- flask
+- rich
+- request
+- yt-dlp
+- tree (used for generating tree view)

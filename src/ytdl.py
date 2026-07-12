@@ -23,7 +23,7 @@ _RECENT_MAX = 5
 _recent_mtime = 0
 
 
-def _load_recent():
+def load_recent():
     global _recent_mtime
     try:
         mtime = os.path.getmtime(_RECENT_FILE)
@@ -47,7 +47,7 @@ def _save_recent(queries):
 
 
 def _touch_recent(query):
-    queries = _load_recent()
+    queries = load_recent()
     if queries is None:
         try:
             with open(_RECENT_FILE) as f:
